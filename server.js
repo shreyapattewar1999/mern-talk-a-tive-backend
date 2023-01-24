@@ -6,6 +6,7 @@ const userRoutes = require("./routes/userRoutes");
 const chatRoutes = require("./routes/chatRoutes");
 const messageRoutes = require("./routes/messageRoutes");
 const { notFound, errorHandler } = require("./middlewear/errorMiddlewear");
+const axios = require("axios");
 
 const app = express();
 
@@ -21,6 +22,8 @@ app.use("/api/message", messageRoutes);
 
 app.use(notFound);
 app.use(errorHandler);
+
+let alreadyPresentNotifications = new Set();
 // app.get("/", (req, res) => {
 //   res.send("api running using nodemon ");
 // });
@@ -38,6 +41,44 @@ const server = app.listen(
   5000,
   console.log("server started on " + PORT.toString())
 );
+
+const addNotificationInDb = async (notificationToBeAdded) => {
+  // console.log(notificationToBeAdded);
+  try {
+    // const config = {
+    //   headers: {
+    //     "Content-type": "application/json",
+    //     Authorization: `Bearer ${user.token}`,
+    //   },
+    // };
+
+    if (alreadyPresentNotifications.has(notificationToBeAdded._id)) {
+      return;
+    }
+
+    alreadyPresentNotifications.add(notificationToBeAdded._id);
+    const usersToBeNotified = [];
+
+    notificationToBeAdded.chat.users.forEach((user) => {
+      if (user._id.toString() !== notificationToBeAdded.sender._id.toString()) {
+        usersToBeNotified.push(user._id);
+      }
+    });
+    const requestBody = {
+      chatId: notificationToBeAdded.chat._id,
+      isGroupChat: notificationToBeAdded.chat.isGroupChat,
+      content: notificationToBeAdded.content,
+      senderId: notificationToBeAdded.sender._id,
+      users: usersToBeNotified,
+    };
+    const { data } = await axios.post(
+      "http://localhost:5000/api/message/notification/add",
+      requestBody
+    );
+  } catch (error) {
+    console.log(error);
+  }
+};
 
 const io = require("socket.io")(server, {
   pingTimeout: 60000,
@@ -78,6 +119,7 @@ io.on("connection", (socket) => {
         // if this message belongs to current sender then no need to receive this message again
         return;
       } else {
+        addNotificationInDb(newMessageReceived);
         socket.in(user._id).emit("message received", newMessageReceived);
       }
     });
