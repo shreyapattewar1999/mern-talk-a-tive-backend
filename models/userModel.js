@@ -8,10 +8,13 @@ const userModel = mongoose.Schema(
     password: { type: String, required: true },
     profile_pic: {
       type: String,
-      default:
-        "https://icon-library.com/images/anonymous-avatar-icon/anonymous-avatar-icon-25.jpg",
     },
+    profile_pic_public_id: { type: String },
     isAdmin: {
+      type: Boolean,
+      default: false,
+    },
+    is_email_verified: {
       type: Boolean,
       default: false,
     },

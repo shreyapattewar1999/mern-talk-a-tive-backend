@@ -1,9 +1,12 @@
 const asyncHandler = require("express-async-handler");
 const { generateToken } = require("../config/generateToken");
 const User = require("../models/userModel");
+const cloudinary = require("cloudinary");
+const { sendEmail } = require("../config/sendemail");
 
 const registerUser = asyncHandler(async (req, res) => {
-  const { name, email, password, profile_pic } = req.body;
+  const { name, email, password, profile_pic, profile_pic_public_id } =
+    req.body;
   if (!name || !email || !password) {
     res.status(400);
     throw new Error("Please enter all fields");
@@ -19,16 +22,30 @@ const registerUser = asyncHandler(async (req, res) => {
       email,
       password,
       profile_pic,
+      profile_pic_public_id,
     });
 
     if (newUser) {
-      console.log("usercontroller", newUser.password);
+      // console.log("usercontroller", newUser.password);
+      const generatedToken = generateToken(newUser._id);
+
+      const verificationLink =
+        "http://localhost:3000/user/" +
+        newUser._id +
+        "/verify/" +
+        generatedToken;
+
+      await sendEmail(
+        newUser.email,
+        "Verify email address",
+        `Please click on below link to verify your email address \n${verificationLink}`
+      );
       res.status(200).json({
         _id: newUser._id,
         name: newUser.name,
         email: newUser.email,
         profile_pic: newUser.profile_pic,
-        token: generateToken(newUser._id),
+        token: generatedToken,
       });
     } else {
       res.status(400).json("Failed to create user");
@@ -52,6 +69,7 @@ const authUser = asyncHandler(async (req, res) => {
       name: user.name,
       email: user.email,
       profile_pic: user.profile_pic,
+      profile_pic_public_id: user?.profile_pic_public_id,
       token: generateToken(user._id),
     });
   } else {
@@ -83,5 +101,109 @@ const allUsers = asyncHandler(async (req, res) => {
 
   // console.log(req.query);
 });
-module.exports = { registerUser, authUser, allUsers };
+
+const updateProfilePic = asyncHandler(async (req, res) => {
+  const { loggeduser_id, profilePic, profile_pic_public_id } = req.body;
+  try {
+    cloudinary.config({
+      cloud_name: "dikosnerx",
+      api_key: "996965522647276",
+      api_secret: "POzroGMBAjmUb5gkScKrhK0Tipw",
+    });
+
+    const removePrevProfilepic_id = req.user?.profile_pic_public_id;
+    if (removePrevProfilepic_id) {
+      cloudinary.uploader
+        .destroy(removePrevProfilepic_id, function (error, result) {
+          // console.log(result, error);
+        })
+        // .then((resp) => console.log(resp))
+        .catch((_err) =>
+          console.log("Something went wrong, please try again later.")
+        );
+    }
+
+    await User.findByIdAndUpdate(loggeduser_id, {
+      $set: {
+        profile_pic: profilePic,
+        profile_pic_public_id: profile_pic_public_id,
+      },
+    });
+    const updatedUserDetails = await User.findById(loggeduser_id);
+    return res.status(200).json(updatedUserDetails);
+  } catch (error) {
+    console.log(error);
+    return res.status(401).json({ msg: "Update failed" });
+  }
+});
+
+const deleteProfilPicture = asyncHandler(async (req, res) => {
+  const userId = req.user._id;
+  try {
+    cloudinary.config({
+      cloud_name: "dikosnerx",
+      api_key: "996965522647276",
+      api_secret: "POzroGMBAjmUb5gkScKrhK0Tipw",
+    });
+
+    cloudinary.uploader
+      .destroy(req.user?.profile_pic_public_id, function (error, result) {
+        // console.log(result, error);
+      })
+      // .then((resp) => console.log(resp))
+      .catch((_err) =>
+        console.log("Something went wrong, please try again later.")
+      );
+    const updatedData = await User.findByIdAndUpdate(userId, {
+      $set: { profile_pic: null, profile_pic_public_id: null },
+    });
+    if (updatedData) {
+      return res.status(200).json({ isProfilePictureDeleted: true });
+    } else {
+      return res.status(400).json({ isProfilePictureDeleted: true });
+    }
+  } catch (error) {
+    console.log(error);
+    return res.status(401).json({ msg: "Profile picture cannot be deleted" });
+  }
+});
+
+const verifyEmailAddress = asyncHandler(async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) {
+      return res
+        .status(400)
+        .json({ message: "Oopss!!! Invalid link!!", validUrl: 2 });
+    }
+    if (user.is_email_verified) {
+      return res.status(400).json({
+        message: "This email address has already been verified",
+        validUrl: 4,
+      });
+    }
+
+    await User.findByIdAndUpdate(req.params.id, {
+      $set: { is_email_verified: true },
+    });
+
+    return res
+      .status(200)
+      .json({ message: "Email has been successfully verified", validUrl: 2 });
+  } catch (error) {
+    console.log(error);
+    return res
+      .status(400)
+      .json({ message: "Unexpected Error Occurred", validUrl: 2 });
+  }
+});
+
+module.exports = {
+  registerUser,
+  authUser,
+  allUsers,
+  updateProfilePic,
+  deleteProfilPicture,
+  verifyEmailAddress,
+};
 // express async handler package handles all errors
