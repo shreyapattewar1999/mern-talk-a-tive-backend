@@ -33,9 +33,9 @@ const registerUser = asyncHandler(async (req, res) => {
         "http://localhost:3000/user/" +
         newUser._id +
         "/verify/" +
-        generatedToken;
+        Date.now().toString();
 
-      await sendEmail(
+      sendEmail(
         newUser.email,
         "Verify email address",
         `Please click on below link to verify your email address \n${verificationLink}`
@@ -60,6 +60,23 @@ const authUser = asyncHandler(async (req, res) => {
     throw new Error("Please enter all fields");
   }
   const user = await User.findOne({ email });
+  if (!user?.is_email_verified) {
+    const verificationLink =
+      "http://localhost:3000/user/" +
+      user._id +
+      "/verify/" +
+      Date.now().toString();
+
+    sendEmail(
+      user.email,
+      "Verify email address",
+      `Please click on below link to verify your email address \n${verificationLink}`
+    );
+    res.status(400).json({
+      is_email_verified: false,
+      userId: user._id,
+    });
+  }
 
   //   matchPasssword function is part of userModel file, however while refering we are referring to "user" in above line
   // since we need to run function matchpassword for user (with given email exists in db)
@@ -170,6 +187,22 @@ const deleteProfilPicture = asyncHandler(async (req, res) => {
 
 const verifyEmailAddress = asyncHandler(async (req, res) => {
   try {
+    const timestamp = new Date(parseInt(req.params.timestamp, 10));
+    if (isNaN(timestamp.getTime())) {
+      return res.status(400).json({
+        message: "Invalid verification link.",
+        validUrl: 2,
+      });
+    }
+    const current = Date.now();
+    const diff_in_milli = current - timestamp;
+    const diff_in_minutes = diff_in_milli / (1000 * 60);
+    if (diff_in_minutes > 5 || diff_in_minutes < 0) {
+      return res.status(400).json({
+        message: "Ooops!! This link is already expired.",
+        validUrl: 2,
+      });
+    }
     const user = await User.findById(req.params.id);
     if (!user) {
       return res
@@ -189,7 +222,7 @@ const verifyEmailAddress = asyncHandler(async (req, res) => {
 
     return res
       .status(200)
-      .json({ message: "Email has been successfully verified", validUrl: 2 });
+      .json({ message: "Email has been successfully verified", validUrl: 1 });
   } catch (error) {
     console.log(error);
     return res

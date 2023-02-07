@@ -19,7 +19,7 @@ router.route("/updatepicture").put(protect, updateProfilePic);
 
 router.route("/deletepicture").delete(protect, deleteProfilPicture);
 
-router.route("/:id/verify").get(verifyEmailAddress);
+router.route("/:id/verify/:timestamp").get(verifyEmailAddress);
 // Above line refers to 2 routes
 // 1. router.route("/").post(registerUser)
 // 2. router.route("/").get(protect, allUsers);
