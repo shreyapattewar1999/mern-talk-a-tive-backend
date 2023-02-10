@@ -24,6 +24,14 @@ const userModel = mongoose.Schema(
   }
 );
 
+const otpModel = mongoose.Schema(
+  {
+    hashedOtp: { type: String, required: true },
+    email: { type: String, required: true },
+  },
+  { timestamps: true }
+);
+
 userModel.methods.matchPassword = async function (enteredPassword) {
   const isCompare = await bcrypt.compare(enteredPassword, this.password);
   return isCompare;
@@ -40,4 +48,6 @@ userModel.pre("save", async function (next) {
 });
 
 const User = mongoose.model("User", userModel);
-module.exports = User;
+const OTP_Model = mongoose.model("OTP_Model", otpModel);
+
+module.exports = { User, OTP_Model };

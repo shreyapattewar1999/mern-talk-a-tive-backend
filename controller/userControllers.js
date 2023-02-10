@@ -1,8 +1,9 @@
 const asyncHandler = require("express-async-handler");
 const { generateToken } = require("../config/generateToken");
-const User = require("../models/userModel");
+const { User, OTP_Model } = require("../models/userModel");
 const cloudinary = require("cloudinary");
 const { sendEmail } = require("../config/sendemail");
+const bcrypt = require("bcryptjs");
 
 const registerUser = asyncHandler(async (req, res) => {
   const { name, email, password, profile_pic, profile_pic_public_id } =
@@ -60,6 +61,7 @@ const authUser = asyncHandler(async (req, res) => {
     throw new Error("Please enter all fields");
   }
   const user = await User.findOne({ email });
+  console.log(user);
   if (!user?.is_email_verified) {
     const verificationLink =
       "http://localhost:3000/user/" +
@@ -75,10 +77,12 @@ const authUser = asyncHandler(async (req, res) => {
     res.status(400).json({
       is_email_verified: false,
       userId: user._id,
+      message:
+        "Please verify your email address first !! We have sent verification link on your email id. Please check your inbox",
     });
   }
 
-  //   matchPasssword function is part of userModel file, however while refering we are referring to "user" in above line
+  // matchPasssword function is part of userModel file, however while refering we are referring to "user" in above line
   // since we need to run function matchpassword for user (with given email exists in db)
   if (user && (await user.matchPassword(password))) {
     res.status(200).json({
@@ -90,7 +94,7 @@ const authUser = asyncHandler(async (req, res) => {
       token: generateToken(user._id),
     });
   } else {
-    res.status(400).json("invalid credentials");
+    res.status(400).json({ message: "invalid credentials" });
   }
 });
 
@@ -231,6 +235,98 @@ const verifyEmailAddress = asyncHandler(async (req, res) => {
   }
 });
 
+const updatePassword = asyncHandler(async (req, res) => {
+  try {
+    const email = req.body.email;
+    const new_password = req.body.password;
+
+    const userToBeUpdated = await User.findOne({ email: email });
+
+    if (!userToBeUpdated) {
+      res
+        .status(400)
+        .json({ message: "Invalid email address. No user with this email id" });
+    }
+
+    await User.findOneAndUpdate(
+      { email },
+      { $set: { password: new_password } }
+    );
+
+    res.status(200).json({ message: "Password has been updated" });
+  } catch (error) {
+    res.status(400).json({ message: "Unexpected error" });
+  }
+});
+
+const generate_send_otp = asyncHandler(async (req, res) => {
+  try {
+    const salt = await bcrypt.genSalt(10);
+    var generated_random_num = Math.floor(100000 + Math.random() * 900000);
+    // console.log(req.body.email, generated_random_num);
+    const checkUsers = await OTP_Model.find({ email: req.body.email });
+    // const users = await OTP_Model.find();
+    // console.log(checkUsers);
+    if (checkUsers) {
+      await OTP_Model.deleteMany({ email: req.body.email });
+    }
+
+    const hashedOtp = await bcrypt.hash(generated_random_num.toString(), salt);
+    const savedOtp = await OTP_Model.create({
+      hashedOtp,
+      email: req.body.email,
+    });
+
+    sendEmail(
+      req.body.email,
+      "Otp for updating password",
+      `This is your one-time-password for updating login password \n${generated_random_num}`
+    );
+    res.status(200).json({ message: "Otp has been sent" });
+  } catch (error) {
+    res.status(400).json({ message: "Unexpected error", error });
+  }
+});
+
+const verifyOtp = asyncHandler(async (req, res) => {
+  try {
+    const { email, entered_otp } = req.body;
+    const user = await OTP_Model.findOne({ email: email });
+    if (!user) {
+      res
+        .status(400)
+        .json({ message: "No user found with this email address" });
+    }
+    const current = Date.now();
+    const createdTimeStamp = new Date(user.createdAt.toString());
+    // console.log(current, user);
+    const diff_in_milli = current - createdTimeStamp;
+    const diff_in_minutes = diff_in_milli / (1000 * 60);
+    if (diff_in_minutes > 5 || diff_in_minutes < 0) {
+      await OTP_Model.deleteMany({ email });
+      return res.status(400).json({
+        message: "Ooops!! Otp is already expired.",
+      });
+    }
+    const hashedOtp = user.hashedOtp;
+    const isOtpCorrect = await bcrypt.compare(entered_otp, hashedOtp);
+    if (isOtpCorrect) {
+      await OTP_Model.deleteMany({ email: email });
+      return res.status(200).json({
+        message: "Otp verified",
+      });
+    } else {
+      return res.status(400).json({
+        message: "Invalid Otp",
+      });
+    }
+  } catch (error) {
+    return res.status(400).json({
+      message: "Unexpected Error Occurred",
+    });
+  }
+});
+
 module.exports = {
   registerUser,
   authUser,
@@ -238,5 +334,9 @@ module.exports = {
   updateProfilePic,
   deleteProfilPicture,
   verifyEmailAddress,
+  updatePassword,
+  generate_send_otp,
+  verifyOtp,
 };
+
 // express async handler package handles all errors
