@@ -18,12 +18,15 @@ const accessChat = asyncHandler(async (req, res) => {
     ],
   })
     .populate("users", "-password")
-    .populate("lastMessage");
+    .populate({
+      path: "lastMessage",
+      populate: { path: "sender", select: "name profile_pic email" },
+    });
 
-  isChat = await User.populate(isChat, {
-    path: "lastMessage.sender",
-    select: "name profile_pic email",
-  });
+  // isChat = await User.populate(isChat, {
+  //   path: "lastMessage.sender",
+  //   select: "name profile_pic email",
+  // });
 
   if (isChat.length > 0) {
     return res.status(200).json({ chat: isChat[0] });
@@ -52,13 +55,12 @@ const fetchChats = asyncHandler((req, res) => {
     Chat.find({ users: { $elemMatch: { $eq: req.user._id } } })
       .populate("users", "-password")
       .populate("groupAdmin", "-password")
-      .populate("lastMessage")
+      .populate({
+        path: "lastMessage",
+        populate: { path: "sender", select: "name profile_pic email" },
+      })
       .sort({ updatedAt: -1 }) //sort chats descendingly
       .then(async (result) => {
-        result = await User.populate(result, {
-          path: "lastMessage.sender",
-          select: "name profile_pic email",
-        });
         return res.status(200).json({ chat: result });
       });
   } catch (error) {}

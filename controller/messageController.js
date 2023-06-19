@@ -4,7 +4,6 @@ const User = require("../models/userModel");
 const { Message } = require("../models/messageModel");
 const { Notification } = require("../models/notificationModel");
 const mongoose = require("mongoose");
-const { findOneAndUpdate } = require("../models/userModel");
 
 const sendMessage = asyncHandler(async (req, res) => {
   const { chatId, content } = req.body;
@@ -24,24 +23,28 @@ const sendMessage = asyncHandler(async (req, res) => {
 
   try {
     var createdMessage = await Message.create(newMessage);
-
     // here we are populating instance of mongoose class
-    createdMessage = await createdMessage.populate("sender", "-password");
-    createdMessage = await createdMessage.populate("chat");
+    createdMessage = await createdMessage.populate({
+      path: "sender",
+      select: "-password",
+    });
 
-    // explain path here ??????????
-    createdMessage = await User.populate(createdMessage, {
+    createdMessage = await createdMessage.populate("chat");
+    createdMessage = await createdMessage.populate({
       path: "chat.users",
       select: "-password",
     });
+    // console.log(createdMessage);
 
     await Chat.findByIdAndUpdate(req.body.chatId, {
       lastMessage: createdMessage,
     });
 
     return res.status(200).json({ createdMessage });
-  } catch (error) {}
-  return res.status(500).json({ msg: "Internal Server Error", error });
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({ msg: "Internal Server Error", error });
+  }
 });
 
 const getAllMessages = asyncHandler(async (req, res) => {
@@ -76,26 +79,24 @@ const addNotification = asyncHandler(async (req, res) => {
     var createdNotification = await Notification.create(newNotification);
 
     // here we are populating instance of mongoose class
+
     createdNotification = await createdNotification.populate(
       "sender",
       "-password"
     );
-    createdNotification = await createdNotification
-      .populate("chat")
-      .populate("users");
-
-    // explain path here ??????????
-    createdNotification = await User.populate(createdNotification, {
+    createdNotification = await createdNotification.populate("chat");
+    createdNotification = await createdMessage.populate({
       path: "chat.users",
       select: "-password",
     });
 
-    // await Chat.findByIdAndUpdate(req.body.chatId, {
-    //   lastMessage: createdMessage,
-    // });
+    await Chat.findByIdAndUpdate(req.body.chatId, {
+      lastMessage: createdMessage,
+    });
 
     return res.status(200).json({ createdNotification });
   } catch (error) {
+    console.log(error?.response?.data);
     return res.status(500).json({ msg: "Internal Server Error", error });
   }
 });
@@ -108,7 +109,7 @@ const deleteNotification = asyncHandler(async (req, res) => {
     // and at some point for particular notifications, users list is empty but document is still present in DB
     // to remove all such documents we had written below statement which states that
     // remove all documents in which users list exists and size of list is 0
-    await Notification.remove({ users: { $exists: true, $size: 0 } });
+    await Notification.deleteMany({ users: { $exists: true, $size: 0 } });
 
     if (isGroupChat) {
       // in case of group chats user1 has dropped msg on group1, and group1 has 4 members
@@ -153,12 +154,18 @@ const removeNotification = asyncHandler(async (req, res) => {
     if (isGroupChat) {
       var notficationToBeUpdated = await Notification.findOne({
         chat: chatId,
-      }).populate("chat");
-
-      notficationToBeUpdated = await User.populate(removed, {
-        path: "chat.users",
-        select: "-password",
+      }).populate({
+        path: "chat",
+        populate: { path: "users", select: "-password" },
       });
+      // var notficationToBeUpdated = await Notification.findOne({
+      //   chat: chatId,
+      // }).populate("chat");
+
+      // notficationToBeUpdated = await User.populate(removed, {
+      //   path: "chat.users",
+      //   select: "-password",
+      // });
 
       notficationToBeUpdated.chat.users =
         notficationToBeUpdated.chat.users.filter(
@@ -223,17 +230,22 @@ const removeNotification = asyncHandler(async (req, res) => {
 
 const getAllNotifications = asyncHandler(async (req, res) => {
   try {
-    const notifications = await Notification.find({
+    const notificationsWithUsers = await Notification.find({
       users: req.user._id,
     })
-      .populate("chat")
-      .populate("users")
+      .populate({
+        path: "chat",
+        populate: { path: "users", select: "-password" },
+      })
+      .populate({
+        path: "users",
+      })
       .populate("sender", "-password");
 
-    const notificationsWithUsers = await User.populate(notifications, {
-      path: "chat.users",
-      select: "-password",
-    });
+    // const notificationsWithUsers = await User.populate(notifications, {
+    //   path: "chat.users",
+    //   select: "-password",
+    // });
     // const loggedUserId = req.user._id;
 
     // let result = [];

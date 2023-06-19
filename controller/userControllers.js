@@ -61,7 +61,7 @@ const authUser = asyncHandler(async (req, res) => {
     throw new Error("Please enter all fields");
   }
   const user = await User.findOne({ email });
-  console.log(user);
+  // console.log(user);
   if (!user?.is_email_verified) {
     const verificationLink =
       "http://localhost:3000/user/" +
@@ -111,7 +111,7 @@ const allUsers = asyncHandler(async (req, res) => {
         { email: { $regex: keyword, $options: "i" } },
       ],
     };
-    // $ne --> no equal to
+    // $ne --> not equal to
     // last find is to remove current logged in user from result of first query
     const matched_users = await User.find(query).find({
       _id: { $ne: req.user._id },
@@ -184,7 +184,7 @@ const deleteProfilPicture = asyncHandler(async (req, res) => {
       return res.status(400).json({ isProfilePictureDeleted: true });
     }
   } catch (error) {
-    console.log(error);
+    // console.log(error);
     return res.status(401).json({ msg: "Profile picture cannot be deleted" });
   }
 });
@@ -228,7 +228,7 @@ const verifyEmailAddress = asyncHandler(async (req, res) => {
       .status(200)
       .json({ message: "Email has been successfully verified", validUrl: 1 });
   } catch (error) {
-    console.log(error);
+    // console.log(error);
     return res
       .status(400)
       .json({ message: "Unexpected Error Occurred", validUrl: 2 });
@@ -239,6 +239,8 @@ const updatePassword = asyncHandler(async (req, res) => {
   try {
     const email = req.body.email;
     const new_password = req.body.password;
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(new_password, salt);
 
     const userToBeUpdated = await User.findOne({ email: email });
 
@@ -250,7 +252,7 @@ const updatePassword = asyncHandler(async (req, res) => {
 
     await User.findOneAndUpdate(
       { email },
-      { $set: { password: new_password } }
+      { $set: { password: hashedPassword } }
     );
 
     res.status(200).json({ message: "Password has been updated" });
@@ -263,10 +265,8 @@ const generate_send_otp = asyncHandler(async (req, res) => {
   try {
     const salt = await bcrypt.genSalt(10);
     var generated_random_num = Math.floor(100000 + Math.random() * 900000);
-    // console.log(req.body.email, generated_random_num);
     const checkUsers = await OTP_Model.find({ email: req.body.email });
     // const users = await OTP_Model.find();
-    // console.log(checkUsers);
     if (checkUsers) {
       await OTP_Model.deleteMany({ email: req.body.email });
     }
