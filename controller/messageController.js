@@ -61,6 +61,8 @@ const getAllMessages = asyncHandler(async (req, res) => {
 const addNotification = asyncHandler(async (req, res) => {
   const { chatId, content, senderId, isGroupChat, users } = req.body;
 
+  const updatedUsers = users.filter((u) => u._id != senderId);
+  console.log(senderId);
   if (!content || !chatId) {
     console.log("Invalid data passed into request");
     return res
@@ -72,7 +74,7 @@ const addNotification = asyncHandler(async (req, res) => {
     sender: senderId,
     content,
     chat: chatId,
-    users,
+    users: updatedUsers,
   };
 
   try {
@@ -85,18 +87,18 @@ const addNotification = asyncHandler(async (req, res) => {
       "-password"
     );
     createdNotification = await createdNotification.populate("chat");
-    createdNotification = await createdMessage.populate({
+    createdNotification = await createdNotification.populate({
       path: "chat.users",
       select: "-password",
     });
 
-    await Chat.findByIdAndUpdate(req.body.chatId, {
-      lastMessage: createdMessage,
+    await Chat.findByIdAndUpdate(chatId, {
+      lastMessage: createdNotification,
     });
 
     return res.status(200).json({ createdNotification });
   } catch (error) {
-    console.log(error?.response?.data);
+    console.log(error);
     return res.status(500).json({ msg: "Internal Server Error", error });
   }
 });
@@ -143,9 +145,11 @@ const deleteNotification = asyncHandler(async (req, res) => {
       }
     }
   } catch (error) {
+    console.log(error);
     return res.status(400).json({ message: "Internal Server Error", error });
   }
 });
+
 const removeNotification = asyncHandler(async (req, res) => {
   // const { notificationIds } = req.body;
   const { chatId, isGroupChat } = req.body;
@@ -281,11 +285,108 @@ const getAllNotifications = asyncHandler(async (req, res) => {
     return res.status(400).json({ msg: "Internal Server Error", error });
   }
 });
+
+const addNotification1 = asyncHandler(async (requestBody) => {
+  // console.log("inside controller", requestBody);
+  const { chatId, content, senderId, isGroupChat, users } = requestBody;
+
+  if (!content || !chatId) {
+    console.log("Invalid data passed into request");
+    return;
+  }
+
+  var newNotification = {
+    sender: senderId,
+    content,
+    chat: chatId,
+    users,
+  };
+
+  try {
+    var createdNotification = await Notification.create(newNotification);
+
+    // here we are populating instance of mongoose class
+
+    createdNotification = await createdNotification.populate(
+      "sender",
+      "-password"
+    );
+    createdNotification = await createdNotification.populate("chat");
+    createdNotification = await createdNotification.populate({
+      path: "chat.users",
+      select: "-password",
+    });
+
+    await Chat.findByIdAndUpdate(requestBody.chatId, {
+      lastMessage: createdNotification,
+    });
+    // console.log("notification pushed to db");
+    return;
+  } catch (error) {
+    console.log(error);
+  }
+});
+
+const clearMessages = asyncHandler(async (req, res) => {
+  try {
+    const chatId = req.params.chatId;
+    await Message.deleteMany({ chat: chatId });
+    await Notification.deleteMany({ chat: chatId });
+    return res.status(200).send({ message: "Chats deleted" });
+  } catch (error) {
+    console.log(error);
+    return res.status(400).send({ message: "Unexpected error" });
+  }
+});
+
+const deleteMessage = asyncHandler(async (req, res) => {
+  try {
+    const messageId = req.params.messageId;
+    const messageToBeDeleted = await Message.findById(messageId);
+    if (messageToBeDeleted) {
+      await Message.deleteOne({ _id: messageId });
+      const notificationToBeDeleted = await Notification.find({
+        chat: messageToBeDeleted.chat,
+        content: messageToBeDeleted.content,
+      });
+      if (notificationToBeDeleted) {
+        await Notification.deleteOne({
+          chat: messageToBeDeleted.chat,
+          content: messageToBeDeleted.content,
+        });
+      }
+      return res.status(200).json({ message: "Message Deleted" });
+    }
+  } catch (error) {
+    console.log(error);
+    res.status(400);
+  }
+});
+
+const editMessage = asyncHandler(async (req, res) => {
+  try {
+    const messageId = req.params.messageId;
+    const { newMessageText } = req.body;
+    const messageToBeUpdated = await Message.findById(messageId);
+    if (messageToBeUpdated) {
+      await Message.findByIdAndUpdate(messageId, {
+        $set: { content: newMessageText },
+      });
+    }
+    return res.status(200).json({ message: "Updated Message" });
+  } catch (error) {
+    return res.status(400);
+  }
+});
 module.exports = {
   getAllMessages,
   sendMessage,
   addNotification,
+  addNotification1,
   removeNotification,
   getAllNotifications,
   deleteNotification,
+  clearMessages,
+  deleteMessage,
+  editMessage,
 };

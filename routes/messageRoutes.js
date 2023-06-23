@@ -7,6 +7,9 @@ const {
   addNotification,
   getAllNotifications,
   deleteNotification,
+  clearMessages,
+  deleteMessage,
+  editMessage,
 } = require("../controller/messageController");
 
 const router = express.Router();
@@ -24,5 +27,11 @@ router.route("/notification/add").post(addNotification);
 router.route("/notification/fetch").get(protect, getAllNotifications);
 
 router.route("/notification/remove").put(protect, deleteNotification);
+
+router.route("/clearMessages/:chatId").delete(protect, clearMessages);
+
+router.route("/delete/:messageId").delete(protect, deleteMessage);
+
+router.route("/edit/:messageId").put(protect, editMessage);
 
 module.exports = router;

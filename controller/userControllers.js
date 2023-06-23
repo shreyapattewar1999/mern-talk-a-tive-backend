@@ -85,6 +85,7 @@ const authUser = asyncHandler(async (req, res) => {
   // matchPasssword function is part of userModel file, however while refering we are referring to "user" in above line
   // since we need to run function matchpassword for user (with given email exists in db)
   if (user && (await user.matchPassword(password))) {
+    await User.findByIdAndUpdate(user._id, { $set: { isOnline: true } });
     res.status(200).json({
       _id: user._id,
       name: user.name,
