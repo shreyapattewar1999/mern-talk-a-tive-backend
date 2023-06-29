@@ -4,11 +4,11 @@ const User = require("../models/userModel");
 const { Message } = require("../models/messageModel");
 const { Notification } = require("../models/notificationModel");
 const mongoose = require("mongoose");
+const cloudinary = require("cloudinary");
 
 const sendMessage = asyncHandler(async (req, res) => {
-  const { chatId, content } = req.body;
-
-  if (!content || !chatId) {
+  const { chatId, content, isImage } = req.body;
+  if (!chatId) {
     console.log("Invalid data passed into request");
     return res
       .status(400)
@@ -19,7 +19,17 @@ const sendMessage = asyncHandler(async (req, res) => {
     sender: req.user._id,
     content,
     chat: chatId,
+    isImage,
   };
+  if (isImage) {
+    newMessage = {
+      ...newMessage,
+      imageInformation: {
+        imagePath: req.body.imagePath,
+        publicId: req.body.imagePublicId,
+      },
+    };
+  }
 
   try {
     var createdMessage = await Message.create(newMessage);
@@ -354,6 +364,27 @@ const deleteMessage = asyncHandler(async (req, res) => {
           chat: messageToBeDeleted.chat,
           content: messageToBeDeleted.content,
         });
+      }
+      if (messageToBeDeleted.isImage) {
+        cloudinary.config({
+          cloud_name: "dikosnerx",
+          api_key: "996965522647276",
+          api_secret: "POzroGMBAjmUb5gkScKrhK0Tipw",
+        });
+        // console.log(isImage, req.body?.imagePublicId);
+        cloudinary.uploader.destroy(
+          messageToBeDeleted?.imageInformation?.publicId,
+          function (error, result) {
+            if (error) {
+              // console.log(error);
+              return;
+            }
+            if (result) {
+              // console.log(result);
+              // console.log("deleted");
+            }
+          }
+        );
       }
       return res.status(200).json({ message: "Message Deleted" });
     }

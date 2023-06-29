@@ -14,6 +14,14 @@ const messageModel = mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Chat",
     },
+    isImage: {
+      type: Boolean,
+      default: false,
+    },
+    imageInformation: {
+      imagePath: { type: String, default: "" },
+      publicId: { type: String },
+    },
   },
   {
     timestamps: true,
