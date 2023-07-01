@@ -27,7 +27,6 @@ const registerUser = asyncHandler(async (req, res) => {
     });
 
     if (newUser) {
-      // console.log("usercontroller", newUser.password);
       const generatedToken = generateToken(newUser._id);
 
       const verificationLink =
@@ -61,7 +60,6 @@ const authUser = asyncHandler(async (req, res) => {
     throw new Error("Please enter all fields");
   }
   const user = await User.findOne({ email });
-  // console.log(user);
   if (!user?.is_email_verified) {
     const verificationLink =
       "http://localhost:3000/user/" +
@@ -300,7 +298,6 @@ const verifyOtp = asyncHandler(async (req, res) => {
     }
     const current = Date.now();
     const createdTimeStamp = new Date(user.createdAt.toString());
-    // console.log(current, user);
     const diff_in_milli = current - createdTimeStamp;
     const diff_in_minutes = diff_in_milli / (1000 * 60);
     if (diff_in_minutes > 5 || diff_in_minutes < 0) {

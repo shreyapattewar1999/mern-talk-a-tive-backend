@@ -44,7 +44,6 @@ const sendMessage = asyncHandler(async (req, res) => {
       path: "chat.users",
       select: "-password",
     });
-    // console.log(createdMessage);
 
     await Chat.findByIdAndUpdate(req.body.chatId, {
       lastMessage: createdMessage,
@@ -330,7 +329,6 @@ const addNotification1 = asyncHandler(async (requestBody) => {
     await Chat.findByIdAndUpdate(requestBody.chatId, {
       lastMessage: createdNotification,
     });
-    // console.log("notification pushed to db");
     return;
   } catch (error) {
     console.log(error);
@@ -371,17 +369,11 @@ const deleteMessage = asyncHandler(async (req, res) => {
           api_key: "996965522647276",
           api_secret: "POzroGMBAjmUb5gkScKrhK0Tipw",
         });
-        // console.log(isImage, req.body?.imagePublicId);
         cloudinary.uploader.destroy(
           messageToBeDeleted?.imageInformation?.publicId,
           function (error, result) {
             if (error) {
-              // console.log(error);
               return;
-            }
-            if (result) {
-              // console.log(result);
-              // console.log("deleted");
             }
           }
         );
