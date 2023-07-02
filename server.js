@@ -4,8 +4,6 @@ const __dirname1 = path.resolve();
 // dotenv library is required to access .env file
 const dotenv = require("dotenv").config();
 
-console.log(path.resolve(__dirname1, "../.env"));
-
 const connectDB = require("./config/db");
 const userRoutes = require("./routes/userRoutes");
 const chatRoutes = require("./routes/chatRoutes");
@@ -25,6 +23,7 @@ app.use(
 );
 var allowCrossDomain = function (req, res, next) {
   res.header("Access-Control-Allow-Origin", "*");
+  res.header("Accept-Control-Allow-Origin", "*");
   res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
   res.header(
     "Access-Control-Allow-Headers",
