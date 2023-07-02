@@ -33,6 +33,12 @@ var allowCrossDomain = function (req, res, next) {
   next();
 };
 app.use(allowCrossDomain);
+const PORT = process.env.PORT || 5000;
+
+const server = app.listen(
+  5000,
+  console.log("server started on " + PORT.toString())
+);
 
 app.use(express.json()); // to accept JSON Requests
 
@@ -40,13 +46,11 @@ app.use(express.static("build"));
 
 connectDB();
 
-const PORT = process.env.PORT || 5000;
-
 app.use("/api/user", userRoutes);
 app.use("/api/chat", chatRoutes);
 app.use("/api/message", messageRoutes);
 
-// console.log(process.env.NODE_ENV, process.env.NODE_ENV === "production");
+console.log(process.env.NODE_ENV, process.env.NODE_ENV === "production");
 // if (process.env.NODE_ENV === "production") {
 //   app.use(express.static(path.join(__dirname1, "/frontend/build")));
 //   app.get("*", (req, res) => {
@@ -62,11 +66,6 @@ app.use(notFound);
 app.use(errorHandler);
 
 let alreadyPresentNotifications = new Set();
-
-const server = app.listen(
-  5000,
-  console.log("server started on " + PORT.toString())
-);
 
 const addNotificationInDb = async (notificationToBeAdded) => {
   try {
