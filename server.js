@@ -41,14 +41,17 @@ const server = app.listen(
 );
 
 app.use(express.json()); // to accept JSON Requests
-
-app.use(express.static("build"));
+// console.log(path.join(__dirname1, "build", "index.html"));
 
 connectDB();
 
 app.use("/api/user", userRoutes);
 app.use("/api/chat", chatRoutes);
 app.use("/api/message", messageRoutes);
+app.use(express.static("build"));
+app.get("*", (req, res) => {
+  res.sendFile(path.resolve(__dirname1, "build", "index.html"));
+});
 
 console.log(process.env.NODE_ENV, process.env.NODE_ENV === "production");
 // if (process.env.NODE_ENV === "production") {
