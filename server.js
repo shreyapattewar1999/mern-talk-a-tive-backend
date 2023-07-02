@@ -14,6 +14,7 @@ const { notFound, errorHandler } = require("./middlewear/errorMiddlewear");
 const { addNotification1 } = require("./controller/messageController");
 const app = express();
 var cors = require("cors");
+app.options("*", cors());
 app.use(
   cors({
     credentials: true,
@@ -27,8 +28,9 @@ var allowCrossDomain = function (req, res, next) {
   res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
   res.header(
     "Access-Control-Allow-Headers",
-    "Content-Type, Authorization, X-Requested-With"
+    "Content-Type, Authorization, X-Requested-With, token"
   );
+  if (req.method.toLowerCase() == "options") res.writeHead(200);
   next();
 };
 app.use(allowCrossDomain);
