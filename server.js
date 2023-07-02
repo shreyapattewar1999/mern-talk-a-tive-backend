@@ -13,6 +13,21 @@ const messageRoutes = require("./routes/messageRoutes");
 const { notFound, errorHandler } = require("./middlewear/errorMiddlewear");
 const { addNotification1 } = require("./controller/messageController");
 const app = express();
+var cors = require("cors");
+const corsOptions = {
+  origin(origin, callback) {
+    callback(null, true);
+  },
+  credentials: true,
+};
+app.use(cors(corsOptions));
+var allowCrossDomain = function (req, res, next) {
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+  res.header("Access-Control-Allow-Headers", "Content-Type,token");
+  next();
+};
+app.use(allowCrossDomain);
 
 app.use(express.json()); // to accept JSON Requests
 
