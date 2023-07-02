@@ -12,6 +12,7 @@ const { notFound, errorHandler } = require("./middlewear/errorMiddlewear");
 const { addNotification1 } = require("./controller/messageController");
 const app = express();
 var cors = require("cors");
+
 app.options("*", cors());
 app.use(
   cors({
@@ -34,6 +35,8 @@ var allowCrossDomain = function (req, res, next) {
 app.use(allowCrossDomain);
 
 app.use(express.json()); // to accept JSON Requests
+
+app.use(express.static("build"));
 
 connectDB();
 
