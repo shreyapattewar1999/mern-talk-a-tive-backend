@@ -49,7 +49,8 @@ app.use("/api/user", userRoutes);
 app.use("/api/chat", chatRoutes);
 app.use("/api/message", messageRoutes);
 app.use(express.static("build"));
-app.get("*", (req, res) => {
+app.use(express.static("public"));
+app.use((req, res, next) => {
   res.sendFile(path.resolve(__dirname1, "build", "index.html"));
 });
 
