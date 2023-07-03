@@ -14,47 +14,48 @@ const app = express();
 var cors = require("cors");
 
 app.options("*", cors());
-app.use(
-  cors({
-    credentials: true,
-    preflightContinue: true,
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    origin: true,
-  })
-);
-var allowCrossDomain = function (req, res, next) {
-  res.header("Access-Control-Allow-Origin", "*");
-  res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
-  res.header(
-    "Access-Control-Allow-Headers",
-    "Content-Type, Authorization, X-Requested-With, token"
-  );
-  if (req.method.toLowerCase() == "options") res.writeHead(200);
-  next();
-};
-app.use(allowCrossDomain);
-const PORT = process.env.PORT || 5000;
 
-const server = app.listen(
-  5000,
-  console.log("server started on " + PORT.toString())
-);
+// app.use(
+//   cors({
+//     credentials: true,
+//     preflightContinue: true,
+//     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+//     origin: true,
+//   })
+// );
+// var allowCrossDomain = function (req, res, next) {
+//   res.header("Access-Control-Allow-Origin", "*");
+//   res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+//   res.header(
+//     "Access-Control-Allow-Headers",
+//     "Content-Type, Authorization, X-Requested-With, token"
+//   );
+//   if (req.method.toLowerCase() == "options") res.writeHead(200);
+//   next();
+// };
+// app.use(allowCrossDomain);
+const PORT = process.env.PORT || 5000;
 
 app.use(express.json()); // to accept JSON Requests
 // console.log(path.join(__dirname1, "build", "index.html"));
+app.use(express.static(path.resolve(__dirname1, "build")));
+app.use(express.static(path.resolve(__dirname1, "public")));
 
 connectDB();
 
 app.use("/api/user", userRoutes);
 app.use("/api/chat", chatRoutes);
 app.use("/api/message", messageRoutes);
-app.use(express.static("build"));
-app.use(express.static("public"));
-app.use((req, res, next) => {
+
+app.get("*", (req, res, next) => {
   res.sendFile(path.resolve(__dirname1, "build", "index.html"));
 });
 
-console.log(process.env.NODE_ENV, process.env.NODE_ENV === "production");
+const server = app.listen(
+  5000,
+  console.log("server started on " + PORT.toString())
+);
+
 // if (process.env.NODE_ENV === "production") {
 //   app.use(express.static(path.join(__dirname1, "/frontend/build")));
 //   app.get("*", (req, res) => {
