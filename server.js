@@ -47,6 +47,12 @@ app.use("/api/user", userRoutes);
 app.use("/api/chat", chatRoutes);
 app.use("/api/message", messageRoutes);
 
+app.get("/api/test", (req, res) => {
+  // const userDetails = req.body;
+  // console.log("window closing");
+  // console.log(userDetails);
+  res.sendStatus(200);
+});
 app.get("*", (req, res, next) => {
   res.sendFile(path.resolve(__dirname1, "build", "index.html"));
 });
