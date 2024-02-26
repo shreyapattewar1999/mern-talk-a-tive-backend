@@ -70,7 +70,6 @@ const getAllMessages = asyncHandler(async (req, res) => {
 const addNotification = asyncHandler(async (req, res) => {
   const { chatId, content, senderId, isGroupChat, users } = req.body;
 
-  const updatedUsers = users.filter((u) => u._id != senderId);
   console.log(senderId);
   if (!content || !chatId) {
     console.log("Invalid data passed into request");
@@ -79,6 +78,7 @@ const addNotification = asyncHandler(async (req, res) => {
       .json({ message: "Invalid data passed into request" });
   }
 
+  const updatedUsers = users.filter((u) => u._id != senderId);
   var newNotification = {
     sender: senderId,
     content,

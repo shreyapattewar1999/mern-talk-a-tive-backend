@@ -40,6 +40,7 @@ const registerUser = asyncHandler(async (req, res) => {
         "Verify email address",
         `Please click on below link to verify your email address \n${verificationLink}`
       );
+
       res.status(200).json({
         _id: newUser._id,
         name: newUser.name,
@@ -102,7 +103,7 @@ const authUser = asyncHandler(async (req, res) => {
 const allUsers = asyncHandler(async (req, res) => {
   const keyword = req.query.search;
   if (keyword) {
-    // options: "i" --> case sensitive comparison
+    // options: "i" --> case insensitive comparison
     // or --> for searching keyword in name OR email
     const query = {
       $or: [
@@ -143,13 +144,17 @@ const updateProfilePic = asyncHandler(async (req, res) => {
         );
     }
 
-    await User.findByIdAndUpdate(loggeduser_id, {
-      $set: {
-        profile_pic: profilePic,
-        profile_pic_public_id: profile_pic_public_id,
+    const updatedUserDetails = await User.findByIdAndUpdate(
+      loggeduser_id,
+      {
+        $set: {
+          profile_pic: profilePic,
+          profile_pic_public_id: profile_pic_public_id,
+        },
       },
-    });
-    const updatedUserDetails = await User.findById(loggeduser_id);
+      { new: true }
+    );
+    // const updatedUserDetails = await User.findById(loggeduser_id);
     return res.status(200).json(updatedUserDetails);
   } catch (error) {
     console.log(error);
@@ -174,9 +179,13 @@ const deleteProfilPicture = asyncHandler(async (req, res) => {
       .catch((_err) =>
         console.log("Something went wrong, please try again later.")
       );
-    const updatedData = await User.findByIdAndUpdate(userId, {
-      $set: { profile_pic: null, profile_pic_public_id: null },
-    });
+    const updatedData = await User.findByIdAndUpdate(
+      userId,
+      {
+        $set: { profile_pic: null, profile_pic_public_id: null },
+      },
+      { new: true }
+    );
     if (updatedData) {
       return res.status(200).json({ isProfilePictureDeleted: true });
     } else {
@@ -236,8 +245,9 @@ const verifyEmailAddress = asyncHandler(async (req, res) => {
 
 const updatePassword = asyncHandler(async (req, res) => {
   try {
-    const email = req.body.email;
-    const new_password = req.body.password;
+    // const email = req.body.email;
+    // const new_password = req.body.password;
+    const { email, new_password } = req.body;
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(new_password, salt);
 
@@ -265,7 +275,6 @@ const generate_send_otp = asyncHandler(async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     var generated_random_num = Math.floor(100000 + Math.random() * 900000);
     const checkUsers = await OTP_Model.find({ email: req.body.email });
-    // const users = await OTP_Model.find();
     if (checkUsers) {
       await OTP_Model.deleteMany({ email: req.body.email });
     }
@@ -283,6 +292,7 @@ const generate_send_otp = asyncHandler(async (req, res) => {
     );
     res.status(200).json({ message: "Otp has been sent" });
   } catch (error) {
+    console.log(error);
     res.status(400).json({ message: "Unexpected error", error });
   }
 });

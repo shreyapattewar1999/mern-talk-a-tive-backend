@@ -118,16 +118,6 @@ io.on("connection", (socket) => {
   // here front end will send user details and join the room
   // we are creating new room for each user
   // "setup" is name given to this particular socket
-  socket.on("user loggedin", (userData) => {
-    // console.log("joining", userData._id);
-
-    const isIncomingUserExist = online_users.find((uId) => uId == userData._id);
-
-    if (isIncomingUserExist === undefined || isIncomingUserExist === null) {
-      online_users.push(userData._id);
-    }
-    io.emit("get-online-users", online_users);
-  });
 
   socket.on("setup", (userData) => {
     socket.join(userData._id);
@@ -162,6 +152,17 @@ io.on("connection", (socket) => {
 
   socket.on("typing", (room) => socket.in(room).emit("typing"));
   socket.on("stop typing", (room) => socket.in(room).emit("stop typing"));
+
+  socket.on("user loggedin", (userData) => {
+    // console.log("joining", userData._id);
+
+    const isIncomingUserExist = online_users.find((uId) => uId == userData._id);
+
+    if (isIncomingUserExist === undefined || isIncomingUserExist === null) {
+      online_users.push(userData._id);
+    }
+    io.emit("get-online-users", online_users);
+  });
 
   socket.on("logout-current-user", (currentUserId) => {
     online_users = online_users.filter((uid) => uid !== currentUserId);
